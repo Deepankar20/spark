@@ -1,26 +1,13 @@
 import { signIn, signOut, useSession } from "next-auth/react";
 import Image from "next/legacy/image";
-import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export const Navbar = () => {
   const { data } = useSession();
   const [dropdown, setDropdown] = useState<boolean>(false);
 
-  const router = useRouter();
-
-  useEffect(() => {
-    const func = async () => {
-      if (data) {
-        await router.push("/dashboard");
-      }
-    };
-
-    void func();
-  }, [data, router]);
-
   return (
-    <div className="flex h-[5rem] items-center justify-between p-8">
+    <div className="flex h-[5rem] border-b border-black items-center justify-between p-8">
       <button className="flex items-center text-[2rem] font-semibold">
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -41,15 +28,7 @@ export const Navbar = () => {
         </svg>
         Spark
       </button>
-      <div className="flex gap-8 text-[1.2rem]">
-        <button className="hover:text-[#291334] hover:underline">
-          Pricing
-        </button>
-        <button className="hover:text-[#291334] hover:underline">FAQ</button>
-        <button className="hover:text-[#291334] hover:underline">
-          Support
-        </button>
-      </div>
+
       {data ? (
         <button className="" onClick={() => setDropdown((prev) => !prev)}>
           {

@@ -1,3 +1,5 @@
+import { signIn } from "next-auth/react";
+
 export const Hero = () => {
   return (
     <div className="mx-[2rem] mt-[9rem] px-28 text-center ">
@@ -23,7 +25,7 @@ export const Hero = () => {
         compete with peers, and reach new heights in coding excellence.
       </p>
 
-      <button className="mt-[1rem] rounded-full bg-[#291334] px-4 py-2 text-[#FAF7F5] hover:px-6 hover:font-semibold hover:shadow-lg">
+      <button  onClick={() => void signIn()} className="mt-[1rem] rounded-full bg-[#291334] px-4 py-2 text-[#FAF7F5] hover:px-6 hover:font-semibold hover:shadow-lg">
         Get Started Now!
       </button>
 
