@@ -57,6 +57,8 @@ model User {
     accounts      Account[]
     sessions      Session[]
     topics        Topic[]
+    Group         Group?    @relation(fields: [groupId], references: [id])
+    groupId       String?
 }
 
 model VerificationToken {
@@ -81,8 +83,19 @@ model Note {
     id        String   @id @default(cuid())
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
-    title     String   
+    title     String
     content   String   @db.Text
     topic     Topic    @relation(fields: [topicId], references: [id])
     topicId   String
+}
+
+model Group {
+    id            String   @id @default(cuid())
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+    group_name    String
+    description   String?
+    members       User[]
+    group_picture String?
+    createdBy     String
 }

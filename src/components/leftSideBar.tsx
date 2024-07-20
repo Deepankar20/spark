@@ -9,11 +9,11 @@ export default function LeftSideBar() {
   const router = useRouter();
 
   return (
-    <div className="flex min-h-screen min-w-[14rem] flex-col gap-8 border-r border-black">
+    <div className="flex min-h-screen min-w-[14rem]  flex-col gap-6  rounded-2xl p-1 shadow-xl">
       <button
         className={`mt-[2rem] ${
           selected == "Dashboard" ? "bg-[#291334] text-[#FAF7F5]" : ""
-        }`}
+        } rounded-xl p-1`}
         onClick={() => {
           setSelected("Dashboard");
           void router.push("/dashboard");
@@ -24,7 +24,7 @@ export default function LeftSideBar() {
       <button
         className={`${
           selected == "Repos" ? "bg-[#291334] text-[#FAF7F5]" : ""
-        }`}
+        } rounded-xl p-1`}
         onClick={() => {
           setSelected("Repos");
           void router.push("/repos");
@@ -35,7 +35,7 @@ export default function LeftSideBar() {
       <button
         className={`${
           selected == "Groups" ? "bg-[#291334] text-[#FAF7F5]" : ""
-        }`}
+        } rounded-xl p-1`}
         onClick={() => {
           setSelected("Groups");
           void router.push("/groups");

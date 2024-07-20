@@ -1,3 +1,9 @@
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+import { Redis } from "ioredis";
+import { Worker, Queue } from "bullmq";
+
 import type { GetServerSidePropsContext } from "next";
 import {
   getServerSession,
@@ -8,6 +14,9 @@ import GithubProvider from "next-auth/providers/github";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { env } from "../env.mjs";
 import { prisma } from "./db";
+
+import { Octokit } from "@octokit/rest";
+import axios from "axios";
 
 /**
  * Module augmentation for `next-auth` types.
@@ -58,6 +67,7 @@ export const authOptions: NextAuthOptions = {
         },
       },
     }),
+
     /**
      * ...add more providers here
      *
@@ -68,6 +78,82 @@ export const authOptions: NextAuthOptions = {
      * @see https://next-auth.js.org/providers/github
      **/
   ],
+
+  events: {
+    async signIn(message) {
+      if (message.isNewUser) {
+        console.log(message.account?.access_token);
+
+        const redisConnection = new Redis({
+          host: "127.0.0.1",
+          port: 6379,
+          maxRetriesPerRequest: null,
+        });
+
+        const octokit = new Octokit({
+          auth: message.account?.access_token,
+        });
+        const webhookQueue = new Queue("webhook-creation", {
+          connection: redisConnection,
+        });
+
+        const response = await axios.get(
+          "https://api.github.com/user/repos?per_page=1000",
+          {
+            headers: {
+              Authorization: `Bearer ${
+                message.account?.access_token as string
+              }`,
+              Accept: "application/vnd.github.v3+json",
+            },
+          }
+        );
+
+        if (response.data) {
+          for (const repo of response.data) {
+            await webhookQueue.add("create-webhook", {
+              owner: repo.owner.login,
+              repo: repo.name,
+              accessToken: process.env.GITHUB_TOKEN,
+            });
+          }
+        }
+
+        const worker = new Worker(
+          "webhook-creation",
+          async (job) => {
+            const { owner, repo, accessToken } = job.data;
+            const octokit = new Octokit({ auth: accessToken });
+
+            try {
+              await octokit.request(`POST /repos/${owner}/${repo}/hooks`, {
+                owner: "OWNER",
+                repo: "REPO",
+                name: "web",
+                active: true,
+                events: ["push", "pull_request"],
+                config: {
+                  url: " https://7eb3-2405-201-4031-30c0-fa7e-beac-868-1a5f.ngrok-free.app/webhook",
+                  content_type: "json",
+                  insecure_ssl: "0",
+                },
+                headers: {
+                  "X-GitHub-Api-Version": "2022-11-28",
+                },
+              });
+              console.log(`Webhook created for ${owner}/${repo}`);
+            } catch (error) {
+              console.error(
+                `Error creating webhook for ${owner}/${repo}:`,
+                error
+              );
+            }
+          },
+          { connection: redisConnection }
+        );
+      }
+    },
+  },
 };
 
 /**

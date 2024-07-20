@@ -7,7 +7,7 @@ export const Navbar = () => {
   const [dropdown, setDropdown] = useState<boolean>(false);
 
   return (
-    <div className="flex h-[5rem] border-b border-black items-center justify-between p-8">
+    <div className="  w-screen flex h-[5rem] items-center justify-between p-8 shadow-md">
       <button className="flex items-center text-[2rem] font-semibold">
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -32,7 +32,7 @@ export const Navbar = () => {
       {data ? (
         <button className="" onClick={() => setDropdown((prev) => !prev)}>
           {
-            <div className={`${dropdown ? "mt-[8rem]" : ""}`}>
+            <div className={``}>
               <Image
                 src={data.user.image as string}
                 width={"50"}
@@ -43,7 +43,7 @@ export const Navbar = () => {
               <div
                 className={` flex ${
                   dropdown ? "" : "hidden"
-                } w-[8rem] flex-col gap-2 rounded-lg bg-white p-2`}
+                } fixed right-0 z-50 w-[8rem] flex-col gap-2 rounded-lg bg-white p-2`}
               >
                 <button className="rounded-lg border border-[#291334] shadow-sm hover:shadow-lg">
                   Profile
