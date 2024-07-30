@@ -19,11 +19,7 @@ const Repos = () => {
   const getAccessToken = api.user.getAccessToken.useMutation({
     onSuccess: (data) => {
       if (data.code == 201) {
-        console.log(accessToken);
-
         setAccessToken(data.data as string);
-
-        console.log(accessToken);
       }
     },
   });
@@ -34,7 +30,6 @@ const Repos = () => {
         await getAccessToken.mutateAsync({ id: data?.user.id });
       }
     };
-    console.log("getting accesstoken");
 
     void repos();
   }, [data]);
@@ -52,14 +47,15 @@ const Repos = () => {
   useEffect(() => {
     const fectchAllRepos = async () => {
       try {
-        console.log(accessToken);
-
-        const response = await axios.get("https://api.github.com/user/repos?per_page=100", {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            Accept: "application/vnd.github.v3+json",
-          },
-        });
+        const response = await axios.get(
+          "https://api.github.com/user/repos?per_page=100",
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              Accept: "application/vnd.github.v3+json",
+            },
+          }
+        );
 
         setRepositories(response.data as []);
       } catch (error) {
@@ -69,14 +65,12 @@ const Repos = () => {
     const func = async () => {
       await fectchAllRepos();
     };
-    console.log("fetching repos");
 
     void func();
   }, [accessToken]);
 
   const handleSelect = (e: any) => {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    console.log(e.target?.value);
   };
 
   return (

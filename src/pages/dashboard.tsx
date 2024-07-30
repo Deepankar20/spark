@@ -22,8 +22,6 @@ interface IDataProps {
   commitCount: number;
 }
 
-
-
 export default function Repos() {
   const session = useSession();
 
@@ -33,7 +31,6 @@ export default function Repos() {
     onSuccess: (data) => {
       if (data.code === 201) {
         data.data && setData(data.data);
-        console.log("this is data : ", data);
       }
     },
   });
