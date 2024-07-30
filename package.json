@@ -27,6 +27,7 @@
     "bullmq": "^5.10.1",
     "chart.js": "^4.4.3",
     "codemirror": "^6.0.1",
+    "date-fns": "^3.6.0",
     "dotenv": "^16.4.5",
     "ioredis": "^5.4.1",
     "next": "13.1.6",

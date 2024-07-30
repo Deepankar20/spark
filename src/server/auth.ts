@@ -84,8 +84,6 @@ export const authOptions: NextAuthOptions = {
   events: {
     async signIn(message) {
       if (message.isNewUser) {
-        console.log(message.account?.access_token);
-
         const redisConnection = new Redis({
           host: "127.0.0.1",
           port: 6379,
@@ -108,25 +106,23 @@ export const authOptions: NextAuthOptions = {
           connection: redisConnection,
         });
 
-        const response = await axios.get(
-          "https://api.github.com/user/repos?per_page=1000",
-          {
+        const response =
+          message.account &&
+          (await axios.get("https://api.github.com/user/repos?per_page=1000", {
             headers: {
-              Authorization: `Bearer ${
-                message.account?.access_token as string
-              }`,
+              Authorization: `Bearer ${message.account.access_token as string}`,
               Accept: "application/vnd.github.v3+json",
             },
-          }
-        );
+          }));
 
-        if (response.data) {
+        if (response && response.data) {
           for (const repo of response.data) {
-            await webhookQueue.add("create-webhook", {
-              owner: repo.owner.login,
-              repo: repo.name,
-              accessToken: process.env.GITHUB_TOKEN,
-            });
+            // await webhookQueue.add("create-webhook", {
+            //   owner: repo.owner.login,
+            //   repo: repo.name,
+            //   accessToken: process.env.GITHUB_TOKEN,
+            // });
+            console.log(repo);
 
             await commitQueue.add("add-commit", {
               owner: repo.owner.login,
@@ -140,9 +136,6 @@ export const authOptions: NextAuthOptions = {
           "webhook-creation",
           async (job) => {
             const { owner, repo } = job.data;
-
-            console.log(owner, repo);
-
             try {
               await octokit.request(`POST /repos/${owner}/${repo}/hooks`, {
                 owner: `${owner}`,
@@ -162,7 +155,7 @@ export const authOptions: NextAuthOptions = {
 
               console.log(`webhook created for ${repo} go check it`);
             } catch (error) {
-              console.log(`error on repo : ${repo}`);
+              console.log(error);
             }
           },
           {
@@ -177,17 +170,20 @@ export const authOptions: NextAuthOptions = {
         const commitWorker = new Worker(
           "adding-commit",
           async (job) => {
-            const { owner, repo } = job.data;
-            const url = `https://api.github.com/repos/${owner}/${repo}/commits`;
-            const response = await axios.get(url, {
-              headers: {
-                Authorization: `token YOUR_GITHUB_PERSONAL_ACCESS_TOKEN`,
-              },
-            });
+            const { owner, repo, accessToken } = job.data;
 
-            const commits: [] = response.data;
+            const response = await octokit.request(
+              `GET /repos/${owner}/${repo}/commits`,
+              {
+                owner: `${owner}`,
+                repo: `${repo}`,
+                headers: {
+                  "X-GitHub-Api-Version": "2022-11-28",
+                },
+              }
+            );
 
-            commits.map(async (commit: object) => {
+            response.data.map(async (commit: object) => {
               await processCommitsQueue.add("processCommit", { commit, repo });
             });
           },
@@ -201,7 +197,7 @@ export const authOptions: NextAuthOptions = {
         );
 
         const processCommitWorker = new Worker(
-          "process-commits",
+          "process-commit",
           async (job) => {
             const { commit, repo } = job.data;
 
@@ -214,23 +210,29 @@ export const authOptions: NextAuthOptions = {
               author,
             } = commit;
 
-            const commitUser = await prisma.user.findFirst({
-              where: {
-                email: author.email,
-              },
-            });
-
-            const newCommit = await prisma.commit.create({
-              data: {
-                hash: sha,
-                message,
-                date,
-                author: {
-                  connect: { id: commitUser?.id },
+            try {
+              const commitUser = await prisma.user.findFirst({
+                where: {
+                  email: author.email,
                 },
-                repository: repo,
-              },
-            });
+              });
+
+              console.log("this is user : ", commitUser);
+
+              const newCommit = await prisma.commit.create({
+                data: {
+                  hash: sha,
+                  message,
+                  date,
+                  author: {
+                    connect: { id: commitUser?.id },
+                  },
+                  repository: repo,
+                },
+              });
+            } catch (error) {
+              console.log("an error occured while adding commit");
+            }
           },
           {
             connection: redisConnection,

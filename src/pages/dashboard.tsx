@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Navbar } from "../components/Navbar";
 import LeftSideBar from "../components/leftSideBar";
 import { PieChart } from "react-minimal-pie-chart";
@@ -14,34 +14,29 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
+import axios from "axios";
+import { api } from "../utils/api";
 
-const data = [
-  { name: 1, value: 2, value2: 108 },
-  { name: 2, value: 5.5, value2: 3 },
-  { name: 3, value: 2, value2: 3 },
-  { name: 5, value: 85, value2: 3 },
-  { name: 2, value: 5.5, value2: 3 },
-  { name: 3, value: 2, value2: 3 },
-  { name: 5, value: 85, value2: 3 },
-  { name: 2, value: 5.5, value2: 3 },
-  { name: 3, value: 2, value2: 3 },
-  { name: 5, value: 85, value2: 3 },
-  { name: 2, value: 5.5, value2: 3 },
-  { name: 3, value: 2, value2: 3 },
-  { name: 5, value: 85, value2: 3 },
-  { name: 2, value: 5.5, value2: 3 },
-  { name: 3, value: 2, value2: 3 },
-  { name: 5, value: 85, value2: 3 },
-  { name: 2, value: 5.5, value2: 3 },
-  { name: 3, value: 2, value2: 3 },
-  { name: 5, value: 85, value2: 3 },
-  { name: 8, value: 1.5 },
-  { name: 100, value: 5 },
-  { name: 1, value: 102 },
-];
+interface IDataProps {
+  date: string;
+  commitCount: number;
+}
+
+
 
 export default function Repos() {
   const session = useSession();
+
+  const [data, setData] = useState<IDataProps[]>([]);
+
+  const fetchCommitsPerDay = api.commit.getCommitsPerDay.useMutation({
+    onSuccess: (data) => {
+      if (data.code === 201) {
+        data.data && setData(data.data);
+        console.log("this is data : ", data);
+      }
+    },
+  });
 
   useEffect(() => {
     async function func() {
@@ -50,8 +45,14 @@ export default function Repos() {
       }
     }
 
+    //void fetchCommitsPerDay.mutateAsync;
     void func();
   }, []);
+
+  useEffect(() => {
+    void fetchCommitsPerDay.mutate({ number: 3 });
+  }, []);
+
   return (
     <div className="flex flex-col">
       <Navbar />
@@ -60,15 +61,15 @@ export default function Repos() {
         <div className="flex flex-col gap-8">
           <div className="flex gap-8">
             <div className="mt-2 p-2 shadow-lg">
-              <h2>Your Commmits</h2>
+              <div>Your Commmits</div>
               <LineChart width={800} height={400} data={data}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
+                <CartesianGrid strokeDasharray="1 1" />
+                <XAxis dataKey="date" />
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Line type="monotone" dataKey="value" stroke="#8884d8" />
-                {/* <Line type="monotone" dataKey="value2" stroke="#d8a684" /> */}
+                <Line type="monotone" dataKey="commitCount" stroke="#8884d8" />
+                {/* <Line type="monotone" dataKey="date" stroke="#d8a684" /> */}
               </LineChart>
             </div>
 

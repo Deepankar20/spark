@@ -4,6 +4,7 @@ import { topicRouter } from "./routers/topic";
 import { noteRouter } from "./routers/note";
 import { userRouter } from "./routers/user";
 import { groupRouter } from "./routers/group";
+import { commitRouter } from "./routers/commit";
 
 /**
  * This is the primary router for your server.
@@ -14,8 +15,9 @@ export const appRouter = createTRPCRouter({
   example: exampleRouter,
   topic: topicRouter,
   note: noteRouter,
-  user:userRouter,
-  group:groupRouter
+  user: userRouter,
+  group: groupRouter,
+  commit: commitRouter,
 });
 
 // export type definition of API
