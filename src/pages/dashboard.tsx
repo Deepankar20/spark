@@ -13,9 +13,12 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
+  ResponsiveContainer,
 } from "recharts";
 import axios from "axios";
 import { api } from "../utils/api";
+import { useRecoilState } from "recoil";
+import { leftSideBarSelect } from "../atoms/leftSIdeBarSelect";
 
 interface IDataProps {
   date: string;
@@ -24,8 +27,11 @@ interface IDataProps {
 
 export default function Repos() {
   const session = useSession();
+  const [selected, setSelected] = useRecoilState(leftSideBarSelect);
+  setSelected("Dashboard");
 
   const [data, setData] = useState<IDataProps[]>([]);
+ 
 
   const fetchCommitsPerDay = api.commit.getCommitsPerDay.useMutation({
     onSuccess: (data) => {
@@ -42,35 +48,49 @@ export default function Repos() {
       }
     }
 
+    
+
     //void fetchCommitsPerDay.mutateAsync;
     void func();
   }, []);
 
   useEffect(() => {
-    void fetchCommitsPerDay.mutate({ number: 3 });
+    if (session.data) {
+      void fetchCommitsPerDay.mutate({
+        number: 6,
+        userId: session.data.user.id,
+      });
+    }
   }, []);
+
+
 
   return (
     <div className="flex flex-col">
       <Navbar />
       <div className="flex gap-16">
         <LeftSideBar />
-        <div className="flex flex-col gap-8">
-          <div className="flex gap-8">
-            <div className="mt-2 p-2 shadow-lg">
-              <div>Your Commmits</div>
-              <LineChart width={800} height={400} data={data}>
-                <CartesianGrid strokeDasharray="1 1" />
-                <XAxis dataKey="date" />
-                <YAxis />
+        <div className="flex flex-grow flex-col gap-8 p-16">
+          <div className="mt-2 h-1/2 w-full p-8 shadow-xl">
+            <div>Your Commits</div>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={data}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" tick={{ fontSize: 16 }} />
+                <YAxis
+                  tickFormatter={(tick) => (Number.isInteger(tick) ? tick : "")}
+                  tick={{ fontSize: 16 }}
+                />
                 <Tooltip />
                 <Legend />
-                <Line type="monotone" dataKey="commitCount" stroke="#8884d8" />
-                {/* <Line type="monotone" dataKey="date" stroke="#d8a684" /> */}
+                <Line
+                  type="monotone"
+                  dataKey="commitCount"
+                  stroke="#8884d8"
+                  dot={false}
+                />
               </LineChart>
-            </div>
-
-            <div>something</div>
+            </ResponsiveContainer>
           </div>
           <div>Recent Commits</div>
         </div>

@@ -1,7 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/restrict-template-expressions */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Redis } from "ioredis";
 import { Worker, Queue } from "bullmq";
 
@@ -85,8 +81,9 @@ export const authOptions: NextAuthOptions = {
     async signIn(message) {
       if (message.isNewUser) {
         const redisConnection = new Redis({
-          host: "127.0.0.1",
-          port: 6379,
+          host: "redis-16378.c264.ap-south-1-1.ec2.redns.redis-cloud.com",
+          port: 16378,
+          password:"9b3ALg9AbMJ9G50MvhJOdZ0qZyjAb9DG",
           maxRetriesPerRequest: null,
         });
 
@@ -106,6 +103,12 @@ export const authOptions: NextAuthOptions = {
           connection: redisConnection,
         });
 
+        const user = await prisma.user.findFirst({
+          where: {
+            id: message.account?.userId,
+          },
+        });
+
         const response =
           message.account &&
           (await axios.get("https://api.github.com/user/repos?per_page=1000", {
@@ -117,17 +120,15 @@ export const authOptions: NextAuthOptions = {
 
         if (response && response.data) {
           for (const repo of response.data) {
-            // await webhookQueue.add("create-webhook", {
-            //   owner: repo.owner.login,
-            //   repo: repo.name,
-            //   accessToken: process.env.GITHUB_TOKEN,
-            // });
-            console.log(repo);
+            await webhookQueue.add("create-webhook", {
+              owner: repo.owner.login,
+              repo: repo.name,
+              accessToken: process.env.GITHUB_TOKEN,
+            });
 
             await commitQueue.add("add-commit", {
               owner: repo.owner.login,
               repo: repo.name,
-              accessToken: process.env.GITHUB_TOKEN,
             });
           }
         }
@@ -144,7 +145,7 @@ export const authOptions: NextAuthOptions = {
                 active: true,
                 events: ["push", "pull_request"],
                 config: {
-                  url: "https://3795-2405-201-4031-30c0-c198-af1e-c72d-23d7.ngrok-free.app/webhook",
+                  url: "https://8d48-2405-201-4031-30c0-9562-912d-75f5-a845.ngrok-free.app/api/trpc/webhook.push",
                   content_type: "json",
                   insecure_ssl: "0",
                 },
@@ -170,7 +171,7 @@ export const authOptions: NextAuthOptions = {
         const commitWorker = new Worker(
           "adding-commit",
           async (job) => {
-            const { owner, repo, accessToken } = job.data;
+            const { owner, repo } = job.data;
 
             const response = await octokit.request(
               `GET /repos/${owner}/${repo}/commits`,
@@ -189,10 +190,6 @@ export const authOptions: NextAuthOptions = {
           },
           {
             connection: redisConnection,
-            limiter: {
-              max: 10,
-              duration: 1000,
-            },
           }
         );
 
@@ -205,41 +202,38 @@ export const authOptions: NextAuthOptions = {
               sha,
               commit: {
                 message,
-                author: { date },
+                author:{date},
+                committer,
               },
               author,
             } = commit;
 
+
+
             try {
-              const commitUser = await prisma.user.findFirst({
-                where: {
-                  email: author.email,
-                },
-              });
 
-              console.log("this is user : ", commitUser);
-
-              const newCommit = await prisma.commit.create({
-                data: {
-                  hash: sha,
-                  message,
-                  date,
-                  author: {
-                    connect: { id: commitUser?.id },
+              if (
+                committer.email == user?.email ||
+                author.email == user?.email
+              ) {
+                const newCommit = await prisma.commit.create({
+                  data: {
+                    hash: sha,
+                    message,
+                    date,
+                    author: {
+                      connect: { id: user?.id },
+                    },
+                    repository: repo,
                   },
-                  repository: repo,
-                },
-              });
+                });
+              }
             } catch (error) {
-              console.log("an error occured while adding commit");
+              console.log("an error occured while adding commit", error);
             }
           },
           {
             connection: redisConnection,
-            limiter: {
-              max: 100,
-              duration: 1000,
-            },
           }
         );
       }

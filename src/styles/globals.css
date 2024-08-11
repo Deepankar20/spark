@@ -3,18 +3,20 @@
 @tailwind utilities;
 
 ::-webkit-scrollbar {
-    width: 10px;              /* Width of the scrollbar */
-    height: 5px; 
+    width: 2px;              /* Width of the scrollbar */
+    height: 2px; 
     padding: 2px;            /* Height of the scrollbar */
   }
   
   ::-webkit-scrollbar-track {
-    background: #FAF7F5;      /* Background of the scrollbar track */
+    background: #FAF7F5; 
+         /* Background of the scrollbar track */
      /* Rounded corners for the track */
   }
   
   ::-webkit-scrollbar-thumb {
-    background: #291334;         /* Color of the scrollbar thumb */    /* Rounded corners for the thumb */
+    background: #291334;  
+    height: 5px;       /* Color of the scrollbar thumb */    /* Rounded corners for the thumb */
   }
   
   ::-webkit-scrollbar-thumb:hover {

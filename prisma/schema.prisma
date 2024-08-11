@@ -11,7 +11,7 @@ datasource db {
     // Further reading:
     // https://next-auth.js.org/adapters/prisma#create-the-prisma-schema
     // https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#string
-    url      = env("DATABASE_URL")
+    url      = env("DATABASE_URL_PROD")
 }
 
 model Example {
@@ -57,7 +57,7 @@ model User {
     accounts      Account[]
     sessions      Session[]
     topics        Topic[]
-    Group         Group?    @relation(fields: [groupId], references: [id])
+    Group         Group[]
     groupId       String?
     Commit        Commit[]
 }
@@ -96,17 +96,17 @@ model Group {
     updatedAt     DateTime @updatedAt
     group_name    String
     description   String?
-    members       User[]
+    members       User[] 
     group_picture String?
     createdBy     String
 }
 
 model Commit {
-    id           String @id @default(cuid())
+    id           String   @id @default(cuid())
     date         DateTime
     message      String
     hash         String
-    author       User   @relation(fields: [userId], references: [id])
+    author       User     @relation(fields: [userId], references: [id])
     userId       String
     additions    Int?
     deletions    Int?

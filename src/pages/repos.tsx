@@ -7,11 +7,13 @@ import { api } from "../utils/api";
 import LeftSideBar from "../components/leftSideBar";
 import { useRecoilState } from "recoil";
 import { access_token } from "../atoms/access_token";
+import { leftSideBarSelect } from "../atoms/leftSIdeBarSelect";
 
 const Repos = () => {
   const { data } = useSession();
   const [accessToken, setAccessToken] = useRecoilState(access_token);
-
+  const [selected, setSelected] = useRecoilState(leftSideBarSelect);
+  setSelected('Repos')
   const [repositories, setRepositories] = useState([]);
 
   const router = useRouter();

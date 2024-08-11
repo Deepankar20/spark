@@ -82,9 +82,9 @@ export const commitRouter = createTRPCRouter({
     }),
 
   getCommitsPerDay: publicProcedure
-    .input(z.object({ number: z.number() }))
+    .input(z.object({ number: z.number(), userId: z.string() }))
     .mutation(async ({ input, ctx }) => {
-      const { number } = input;
+      const { number, userId } = input;
       const startDate = subMonths(new Date(), number);
       const today = new Date();
 
@@ -96,14 +96,38 @@ export const commitRouter = createTRPCRouter({
           },
           where: {
             date: {
-              gte: startDate,
+              gte: startDate.toISOString(), // Convert start date to ISO string
+              lte: today.toISOString(),
             },
-            userId: ctx.session?.user.id,
+            userId,
           },
           orderBy: {
             date: "asc",
           },
         });
+
+        interface CommitCounts {
+          [key: string]: number;
+        }
+        const commitCounts = commitsPerDay.reduce(
+          (acc: CommitCounts, { _count, date }) => {
+            const dateKey = new Date(date).toLocaleDateString("en-US", {
+              day: "numeric",
+              month: "short",
+            });
+            if (!acc[dateKey]) {
+              acc[dateKey] = 0;
+            }
+            acc[dateKey] += _count.id;
+            return acc;
+          },
+          {}
+        );
+
+        const commitArray = Object.entries(commitCounts).map(
+          ([date, commitCount]) => ({ date, commitCount })
+        );
+
         // Create a map of dates with commit counts
         const commitCountMap = new Map<string, number>();
         commitsPerDay.forEach((group) => {
@@ -114,25 +138,124 @@ export const commitRouter = createTRPCRouter({
         });
 
         // Generate the full range of dates
-        const allDates = eachDayOfInterval({
-          start: startDate,
-          end: today,
-        });
 
         // Create the formatted results with zeros for missing dates
-        const formattedResults = allDates.map((date) => {
-          const formattedDate = format(startOfDay(date), "yyyy-MM-dd");
-          return {
-            date: format(date, "d MMM"),
-            commitCount: commitCountMap.get(formattedDate) || 0,
-          };
-        });
-        
 
         return {
           code: 201,
           message: "Success",
-          data: formattedResults,
+          data: commitArray,
+        };
+      } catch (error) {
+        console.error("Error fetching commits:", error);
+        return {
+          code: 501,
+          message: "Internal server error",
+          data: null,
+        };
+      }
+    }),
+
+  compareCommits: publicProcedure
+    .input(
+      z.object({ number: z.number(), user1Id: z.string(), user2Id: z.string() })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const { number, user1Id, user2Id } = input;
+      const startDate = subMonths(new Date(), number);
+      const today = new Date();
+
+      async function getCommitsPerDay(userId: string) {
+        const commitsPerDay = await ctx.prisma.commit.groupBy({
+          by: ["date"],
+          _count: {
+            id: true,
+          },
+          where: {
+            date: {
+              gte: startDate.toISOString(), // Convert start date to ISO string
+              lte: today.toISOString(),
+            },
+            userId,
+          },
+          orderBy: {
+            date: "asc",
+          },
+        });
+
+        interface CommitCounts {
+          [key: string]: number;
+        }
+        const commitCounts = commitsPerDay.reduce(
+          (acc: CommitCounts, { _count, date }) => {
+            const dateKey = new Date(date).toLocaleDateString("en-US", {
+              day: "numeric",
+              month: "short",
+            });
+            if (!acc[dateKey]) {
+              acc[dateKey] = 0;
+            }
+            acc[dateKey] += _count.id;
+            return acc;
+          },
+          {}
+        );
+
+        const commitArray = Object.entries(commitCounts).map(
+          ([date, commitCount]) => ({ date, commitCount })
+        );
+
+        // Create a map of dates with commit counts
+        const commitCountMap = new Map<string, number>();
+        commitsPerDay.forEach((group) => {
+          commitCountMap.set(
+            format(startOfDay(new Date(group.date)), "yyyy-MM-dd"),
+            group._count.id
+          );
+        });
+
+        return commitArray;
+      }
+
+      try {
+        const user1Data = await getCommitsPerDay(user1Id);
+        const user2Data = await getCommitsPerDay(user2Id);
+
+        const allDates = Array.from(
+          new Set([
+            ...user1Data.map((entry) => entry.date),
+            ...user2Data.map((entry) => entry.date),
+          ])
+        );
+
+        const fillUserData = (userData: any[], allDates: any[]) => {
+          return allDates.map((date: any) => {
+            // Ensure the date comparison is done correctly (e.g., same format)
+            const dataForDate = userData.find(
+              (entry: { date: any }) => entry.date === date
+            );
+
+            // If dataForDate is found, use its commits; otherwise, use 0.
+            return { date, commits: dataForDate ? dataForDate.commitCount : 0 };
+          });
+        };
+
+        const filledUser1Data = fillUserData(user1Data, allDates);
+
+        const filledUser2Data = fillUserData(user2Data, allDates);
+
+        const mergedData = filledUser1Data.map(
+          (entry: { date: string; commits: number }, index: number) => ({
+            date: entry.date,
+            user1Commits: entry.commits,
+            user2Commits: filledUser2Data[index]?.commits || 0,
+          })
+        );
+
+        return {
+          code: 201,
+          message: "successfully compared",
+          data: mergedData,
         };
       } catch (error) {
         console.error("Error fetching commits:", error);
