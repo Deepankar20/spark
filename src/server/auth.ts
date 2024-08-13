@@ -120,11 +120,11 @@ export const authOptions: NextAuthOptions = {
 
         if (response && response.data) {
           for (const repo of response.data) {
-            await webhookQueue.add("create-webhook", {
-              owner: repo.owner.login,
-              repo: repo.name,
-              accessToken: process.env.GITHUB_TOKEN,
-            });
+            // await webhookQueue.add("create-webhook", {
+            //   owner: repo.owner.login,
+            //   repo: repo.name,
+            //   accessToken: process.env.GITHUB_TOKEN,
+            // });
 
             await commitQueue.add("add-commit", {
               owner: repo.owner.login,
