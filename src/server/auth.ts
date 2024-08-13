@@ -83,7 +83,7 @@ export const authOptions: NextAuthOptions = {
         const redisConnection = new Redis({
           host: "redis-16378.c264.ap-south-1-1.ec2.redns.redis-cloud.com",
           port: 16378,
-          password:"9b3ALg9AbMJ9G50MvhJOdZ0qZyjAb9DG",
+          password: "9b3ALg9AbMJ9G50MvhJOdZ0qZyjAb9DG",
           maxRetriesPerRequest: null,
         });
 
@@ -161,10 +161,6 @@ export const authOptions: NextAuthOptions = {
           },
           {
             connection: redisConnection,
-            limiter: {
-              max: 10,
-              duration: 1000,
-            },
           }
         );
 
@@ -202,16 +198,13 @@ export const authOptions: NextAuthOptions = {
               sha,
               commit: {
                 message,
-                author:{date},
+                author: { date },
                 committer,
               },
               author,
             } = commit;
 
-
-
             try {
-
               if (
                 committer.email == user?.email ||
                 author.email == user?.email
